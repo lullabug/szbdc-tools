@@ -14,6 +14,8 @@ const WRITE_PAGE_ADDR_MIN: usize = 0x02;
 const READ_PAGE_ADDR_MAX: usize = 0x2C;
 const READ_PAGE_ADDR_MIN: usize = 0x00;
 
+const CFG0_PAGE_ADDR: usize = 0x29;
+
 mod cmd_code {
     pub const GET_VERSION: u8 = 0x60;
     pub const READ: u8 = 0x30;
@@ -241,6 +243,33 @@ pub fn write_url(url: &str, reader: &mut Device) -> Result<(), NfcError> {
     write(&data, PAGE_ADDR, reader)
 }
 
+pub fn set_uid_mirror(page_addr: usize, byte_offset: usize, reader: &mut Device) -> Result<(), NfcError> {
+    const MIRROR_PAGE_MIN: usize = 0x04;
+    const MIRROR_PAGE_MAX: usize = 0x27 - 3;
+    const MIRROR_BYTE_BITS_MAX: usize = 0x01;
+
+    if page_addr < MIRROR_PAGE_MIN || page_addr > MIRROR_PAGE_MAX {
+        warn!("Mirror page address out of bounds: {}", page_addr);
+        return Err(NfcError::InvalidArgument(format!(
+            "Mirror page address out of bounds: {}",
+            page_addr
+        )));
+    }
+    if byte_offset > 0b11 || (page_addr == MIRROR_PAGE_MAX && byte_offset > MIRROR_BYTE_BITS_MAX) {
+        warn!("Mirror byte out of bounds: {}", byte_offset);
+        return Err(NfcError::InvalidArgument(format!(
+            "Mirror byte out of bounds: {}",
+            byte_offset
+        )));
+    }
+
+    let mut tx = read(CFG0_PAGE_ADDR, 4, reader)?;
+    tx[0] = (tx[0] & 0b1111) | (0b01 << 6) | (byte_offset << 4) as u8;
+    tx[2] = page_addr as u8;
+    write(&tx, CFG0_PAGE_ADDR, reader)?;
+    Ok(())
+}
+
 pub fn with_card<F, R>(reader: &mut Device, f: F) -> Result<R, NfcError>
 where
     F: FnOnce(&mut Device) -> Result<R, NfcError>,
@@ -259,7 +288,10 @@ fn test() {
     let uid = scan(&mut reader).unwrap();
     println!("Scanned NTAG213 card with UID: {:?}", uid);
 
-    write_url("https://github.com/lullabug/szbdc-tools/tree/main", &mut reader).unwrap();
+    write_url("https://example.com?uid=11223344556677", &mut reader).unwrap();
+    let mirror_page = 0x04_usize + 7;
+    let byte_offset = 0_usize;
+    set_uid_mirror(mirror_page, byte_offset, &mut reader).unwrap();
     let read_rs = read(4, 64, &mut reader).unwrap();
     println!("Read data: {:?}", read_rs);
     reader.initiator_deselect_target().unwrap();
