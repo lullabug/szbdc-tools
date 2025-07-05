@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use log::warn;
 use rusqlite::Connection;
 use uuid::Uuid;
 
@@ -28,7 +27,7 @@ pub struct SqliteRepository {
 }
 
 impl SqliteRepository {
-    pub async fn build(db_path: &str, table_name: String) -> Result<Self, SqliteRepositoryError> {
+    pub async fn new(db_path: &str, table_name: String) -> Self {
         let sql_get_by_id = format!("SELECT id, sku, metadata FROM {} WHERE id = ?1", table_name);
         let sql_get_by_sku = format!("SELECT id, sku, metadata FROM {} WHERE sku = ?1", table_name);
         let sql_add = format!("INSERT INTO {} (id, sku, metadata) VALUES (?1, ?2, ?3)", table_name);
@@ -43,21 +42,20 @@ impl SqliteRepository {
             sql_delete,
             sql_list,
         };
-        rs.verify_table_exists().await?;
-        Ok(rs)
+        rs
     }
 
-    async fn verify_table_exists(&self) -> Result<(), SqliteRepositoryError> {
+    pub async fn create_table(&self) -> Result<(), SqliteRepositoryError> {
         let db_path = self.db_path.clone();
         let table_name = self.table_name.clone();
 
         tokio::task::spawn_blocking(move || {
             let conn = Connection::open(db_path)?;
-            let mut stmt = conn.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?1")?;
-            if !stmt.exists([&table_name])? {
-                warn!("Table `{}` does not exist in the database.", table_name);
-                return Err(SqliteRepositoryError::TableNotFound(table_name.to_string()));
-            }
+            let sql = format!(
+                "CREATE TABLE IF NOT EXISTS {} (id TEXT PRIMARY KEY, sku TEXT NOT NULL UNIQUE, metadata TEXT NOT NULL)",
+                table_name
+            );
+            conn.execute(&sql, [])?;
             Ok(())
         })
         .await?
