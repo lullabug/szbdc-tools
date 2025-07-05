@@ -59,8 +59,8 @@ where
 pub trait Repository<T: Storable> {
     type RepositoryError: Error + Send + Sync + 'static;
 
-    async fn get_by_id(&self, id: Uuid) -> Option<T>;
-    async fn get_by_sku(&self, sku: &T::Sku) -> Option<T>;
+    async fn get_by_id(&self, id: Uuid) -> Result<Option<T>, Self::RepositoryError>;
+    async fn get_by_sku(&self, sku: &T::Sku) -> Result<Option<T>, Self::RepositoryError>;
     async fn add(&self, item: T) -> Result<(), Self::RepositoryError>;
     async fn delete(&self, id: Uuid) -> Result<(), Self::RepositoryError>;
     async fn list(&self) -> Result<Vec<T>, Self::RepositoryError>;
