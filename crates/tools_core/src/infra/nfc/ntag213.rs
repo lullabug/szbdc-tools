@@ -243,6 +243,20 @@ pub fn write_url(url: &str, reader: &mut Device) -> Result<(), NfcError> {
     write(&data, PAGE_ADDR, reader)
 }
 
+/// Set the UID mirror for the NTAG213 card.
+///
+/// # Arguments
+/// * `page_addr` - The page address to set the UID mirror.
+/// * `byte_offset` - The byte offset within the page to set the UID mirror.
+/// * `reader` - The NFC reader device to write to.
+///
+/// # Returns
+/// * `Ok(())` if the operation was successful.
+///
+/// # Errors
+/// * `NfcError::InvalidArgument` if the page address or byte offset is out of bounds.
+/// * `NfcError::NfcError` if there is an error during the NFC communication.
+/// * `NfcError::UnexpectedResponse` if the response length is not as expected.
 pub fn set_uid_mirror(page_addr: usize, byte_offset: usize, reader: &mut Device) -> Result<(), NfcError> {
     const MIRROR_PAGE_MIN: usize = 0x04;
     const MIRROR_PAGE_MAX: usize = 0x27 - 3;
@@ -281,18 +295,20 @@ where
 }
 
 #[test]
-fn test() {
+fn test_ntag213() {
     let mut ctx = nfc1::Context::new().unwrap();
     let mut reader = super::open_reader(None, &mut ctx).unwrap();
 
-    let uid = scan(&mut reader).unwrap();
-    println!("Scanned NTAG213 card with UID: {:?}", uid);
-
-    write_url("https://example.com?uid=11223344556677", &mut reader).unwrap();
-    let mirror_page = 0x04_usize + 7;
-    let byte_offset = 0_usize;
-    set_uid_mirror(mirror_page, byte_offset, &mut reader).unwrap();
-    let read_rs = read(4, 64, &mut reader).unwrap();
-    println!("Read data: {:?}", read_rs);
-    reader.initiator_deselect_target().unwrap();
+    let f= move |reader: &mut Device| {
+        let uid = scan(reader)?;
+        println!("Scanned NTAG213 card with UID: {:?}", uid);
+        write_url("https://example.com?uid=11223344556677", reader)?;
+        let mirror_page = 0x04_usize + 7;
+        let byte_offset = 0_usize;
+        set_uid_mirror(mirror_page, byte_offset, reader)?;
+        let read_rs = read(4, 64, reader)?;
+        println!("Read data: {:?}", String::from_utf8_lossy(&read_rs));
+        Ok(())
+    };
+    with_card(&mut reader, f).unwrap();
 }
