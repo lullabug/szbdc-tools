@@ -1,0 +1,29 @@
+{
+  "name": "repository",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-opener": "^2",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@vicons/material": "^0.13.0",
+    "@vicons/utils": "^0.1.4",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "naive-ui": "^2.42.0",
+    "typescript": "~5.6.2",
+    "vfonts": "^0.0.3",
+    "vite": "^6.0.3",
+    "vue-tsc": "^2.1.10"
+  },
+  "packageManager": "pnpm@10.12.4+sha512.5ea8b0deed94ed68691c9bad4c955492705c5eeb8a87ef86bc62c74a26b037b08ff9570f108b2e4dbd1dd1a9186fea925e527f141c648e85af45631074680184"
+}

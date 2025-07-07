@@ -9,5 +9,6 @@ resolver = "2"
 
 [workspace]
 members = [
-    "crates/*"
+    "crates/*",
+    "tauri-app/*/src-tauri",
 ]

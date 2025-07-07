@@ -1,5 +1,8 @@
+use std::{fs, path::PathBuf};
+
 use async_trait::async_trait;
 use rusqlite::Connection;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::domain::repository::{Repository, Storable};
@@ -14,6 +17,8 @@ pub enum SqliteRepositoryError {
     TableNotFound(String),
     #[error("parsing error: {0}")]
     ParseError(String),
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
 }
 
 pub struct SqliteRepository {
@@ -46,10 +51,13 @@ impl SqliteRepository {
     }
 
     pub async fn create_table(&self) -> Result<(), SqliteRepositoryError> {
-        let db_path = self.db_path.clone();
+        let db_path = PathBuf::from(self.db_path.clone());
         let table_name = self.table_name.clone();
 
         tokio::task::spawn_blocking(move || {
+            if let Some(parent_dir) = db_path.as_path().parent() {
+                fs::create_dir_all(parent_dir)?
+            }
             let conn = Connection::open(db_path)?;
             let sql = format!(
                 "CREATE TABLE IF NOT EXISTS {} (id TEXT PRIMARY KEY, sku TEXT NOT NULL UNIQUE, metadata TEXT NOT NULL)",
@@ -163,6 +171,7 @@ impl Repository<SqliteRepositoryItem> for SqliteRepository {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct SqliteRepositoryItem {
     id: Uuid,
     sku: String,
