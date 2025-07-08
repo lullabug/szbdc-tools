@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { NModal, NCard, NSpace, NInput, NButton } from "naive-ui";
 import { computed, ref } from "vue";
+import BarCode from "./Barcode.vue";
 interface Props {
     visible: boolean;
 }
@@ -45,6 +46,10 @@ function handleConfirm() {
     });
     clearInputs();
 }
+
+function handleSkuBarcodeScanned(barcode: string) {
+    sku.value = barcode;
+}
 </script>
 
 <template>
@@ -57,15 +62,20 @@ function handleConfirm() {
         <n-card class="add-modal-card">
             <div class="add-modal-content">
                 <n-space vertical>
-                    <n-input
-                        v-model:value="sku"
-                        placeholder="Enter SKU"
-                        clearable
-                    />
+                    <n-space>
+                        <n-input
+                            v-model:value="sku"
+                            placeholder="Enter SKU"
+                            clearable
+                            :style="{ width: '28rem' }"
+                        />
+                        <BarCode @barcode="handleSkuBarcodeScanned" />
+                    </n-space>
                     <n-input
                         v-model:value="metadata"
                         placeholder="Enter Metadata"
                         clearable
+                        :style="{ width: '28rem' }"
                     />
                     <n-button
                         type="primary"
@@ -81,7 +91,7 @@ function handleConfirm() {
 
 <style scoped>
 .add-modal-card {
-    width: 50vw;
+    width: 42rem;
     padding: 1rem;
 }
 </style>
